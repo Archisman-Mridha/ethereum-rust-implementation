@@ -1,5 +1,4 @@
-use alloy_primitives::{Address, Bytes, U256};
-use ethers_core::types::H256;
+use ethers_core::types::{H256, Address, Bytes, U256};
 use serde::{Deserialize, Serialize};
 use super::typed_transaction_request::*;
 
@@ -128,8 +127,8 @@ impl TransactionRequest {
       Some(to) => TransactionAction::CallsAddress(to),
       None => TransactionAction::CreatesContract
     };
-    let senderAccountNonce= self.senderAccountNonce.unwrap_or(U256::ZERO);
-    let value= self.value.unwrap_or(U256::ZERO);
+    let senderAccountNonce= self.senderAccountNonce.unwrap_or(U256::zero( ));
+    let value= self.value.unwrap_or(U256::zero( ));
     let data= self.data.unwrap_or_default( );
     let gasLimit= self.gasLimit.unwrap_or_default( );
 
@@ -188,7 +187,7 @@ impl TransactionRequest {
 
           accessList: accessList.unwrap_or_default( ),
 
-          maxPriorityFeePerGas: maxPriorityFeePerGas.unwrap_or(U256::ZERO),
+          maxPriorityFeePerGas: maxPriorityFeePerGas.unwrap_or(U256::zero( )),
           maxFeePerGas,
 
           chainId: 0

@@ -1,4 +1,4 @@
-use alloy_primitives::{Address, Bytes, U256};
+use ethers_core::types::{Address, Bytes, U256};
 use super::transaction_request::AccessListItem;
 
 pub enum TypedTransactionRequest {
