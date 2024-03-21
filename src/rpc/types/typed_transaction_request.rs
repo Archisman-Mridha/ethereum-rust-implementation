@@ -30,6 +30,15 @@ pub struct EIP2930BasedTransactionRequest {
 
   pub accessList: Vec<AccessListItem>,
 
+  /*
+    Chain ID (Introduced in EIP 155) :
+
+    Chain ID protects a transaction included into one chain, from being included into another chain.
+    It is used in the process of signing and verifying a transaction. If different chainIDs are used
+    for signing and verifying, transaction verification will fail.
+
+    Reference : https://ethereum.stackexchange.com/questions/37533.
+  */
   pub chainId: u64
 }
 
