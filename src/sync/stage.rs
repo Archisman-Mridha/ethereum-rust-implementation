@@ -23,7 +23,7 @@ use ethers_core::types::U64;
   starts to execute. It's responsible for executing all of the transactions and updating the state
   stored in the database.
 
-  .... Similarly, we have more stages.
+  ... Similarly, we have more stages.
 */
 #[async_trait]
 pub trait Stage {

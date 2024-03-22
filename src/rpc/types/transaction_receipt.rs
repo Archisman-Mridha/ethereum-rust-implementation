@@ -2,7 +2,7 @@ use ethers_core::types::{Address, Bloom, Log, H256, U256, U64};
 use serde::{Deserialize, Serialize};
 
 // Transaction receipt contains transaction outcomes (status, logs etc.).
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct TransactionReceipt {
 
   // Cryptographically generated unique id of the transaction.
