@@ -1,5 +1,7 @@
 #![allow(non_snake_case, unused)]
 
+mod sync;
 mod rpc;
 
-fn main( ) { }
+#[tokio::main]
+async fn main( ) { }
