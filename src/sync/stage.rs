@@ -1,12 +1,12 @@
 use async_trait::async_trait;
-use ethers_core::types::U64;
+use ethers_core::types::BlockNumber;
+use super::stage_id::StageId;
 
 /*
-  The synchroniation process is divided into multiple serialized tasks - syncing, validating and
+  The synchronization process is divided into multiple serialized tasks - syncing, validating and
   storing the block headers / download block bodies etc. Each task is handled by a Stage.
 
-  When a stage is executed, it'll run starting from the local (outdated) chain tip to the external
-  (new) chain tip.
+  A Stage run starting from the local (outdated) chain tip to the external (new) chain tip.
 
   The pipeline workflow is somewhat like this :
 
@@ -26,7 +26,9 @@ use ethers_core::types::U64;
   ... Similarly, we have more stages.
 */
 #[async_trait]
-pub trait Stage {
+pub trait Stage<Db>
+  : Send + Sync
+{
   // Returns the (unique) id of the Stage.
   fn id(&self) -> StageId;
 
@@ -39,20 +41,13 @@ pub trait Stage {
                     input: StageRollbackInput) -> Result<StageRollbackOutput, Box<dyn std::error::Error>>;
 }
 
-pub struct StageId(pub &'static str);
-
 pub struct StageExecutionInput {
-  pub previousStageInfo: Option<PreviousStageInfo>,
-  pub blockReachedDuringLastExecution: Option<U64>
-}
-
-pub struct PreviousStageInfo {
-  pub id: StageId,
-  pub blockReached: U64
+  pub previousStageInfo: Option<(StageId, BlockNumber)>,
+  pub blockReachedDuringLastExecution: Option<BlockNumber>
 }
 
 pub struct StageExecutionOutput {
-  pub blockReached: U64,
+  pub blockReached: BlockNumber,
   pub executionCompleted: bool,
   pub reachedChainTip: bool
 }
@@ -68,13 +63,13 @@ pub enum StageExecutionError {
 }
 
 pub struct StageRollbackInput {
-  pub currentBlock: U64,
-  pub targetBlock: U64,
-  pub responsibleBadBlock: Option<U64>
+  pub currentBlock: BlockNumber,
+  pub targetBlock: BlockNumber,
+  pub responsibleBadBlock: Option<BlockNumber>
 }
 
 pub struct StageRollbackOutput {
-  pub blockReached: U64
+  pub blockReached: BlockNumber
 }
 
 pub trait DbTransaction { }

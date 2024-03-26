@@ -31,5 +31,17 @@
   Refernce : https://ethereum.org/en/developers/docs/nodes-and-clients/.
 */
 
-mod stage;
-mod pipeline;
+pub mod stage;
+pub mod stage_id;
+
+pub mod stage_checkpoint;
+
+pub mod pipeline;
+mod pipeline_state;
+pub mod pipeline_control_flow;
+pub mod pipeline_error;
+pub mod pipeline_event;
+
+mod utils;
+
+pub mod metrics;
