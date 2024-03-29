@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 /*
   Data that has reached a finalized state and won't undergo further changes (essentially frozen)
   should be read without concerns of modification. This makes it unsuitable for traditional databases.

@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 /*
   To follow and verify current data in the network, the Ethereum client needs to sync with the
   latest network state. This is done by downloading data from peers, cryptographically verifying

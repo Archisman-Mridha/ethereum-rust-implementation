@@ -1,9 +1,9 @@
 use ethers_core::types::BlockNumber;
-use tokio::sync::mpsc::{Sender, UnboundedSender};
-use crate::storage::db::interfaces;
+use tokio::sync::mpsc::UnboundedSender;
+use db::interfaces;
 use super::{
   metrics::MetricEvent, pipeline_control_flow::PipelineControlFlow, pipeline_error::PipelineError,
-  pipeline_event::PipelineEvent, pipeline_state::PipelineState, stage::{Stage, StageExecutionInput}
+  pipeline_event::PipelineEvent, stage::Stage
 };
 use tracing::warn;
 

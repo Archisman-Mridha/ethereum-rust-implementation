@@ -1,15 +1,11 @@
 use std::{ops::RangeInclusive, time::Instant};
 use ethers_core::types::BlockNumber;
-use crate::{
-  storage::{
-    db::interfaces,
-    static_files::{block_headers_segment::BlockHeadersSegment, segment::Segment}
-  },
-  utils::event_emitters::EventEmitters
-};
+use utils::event_emitters::EventEmitters;
+use db::interfaces;
 use super::{
   static_files_generator_event::StaticFilesGeneratorEvent,
-  static_files_handler::StaticFilesHander
+  static_files_handler::StaticFilesHander,
+  block_headers_segment::BlockHeadersSegment, segment::Segment
 };
 use rayon::prelude::*;
 

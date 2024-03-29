@@ -1,11 +1,9 @@
-use crate::rpc::types::{
+use crate::types::{
   block::RichBlock, smart_contract_call_request::SmartContractCallRequest,
-  transaction::Transaction, transaction_receipt::TransactionReceipt,
-  transaction_request::TransactionRequest
+  transaction::Transaction, transaction_receipt::TransactionReceipt
 };
 use ethers_core::types::{
-  transaction::eip2930::AccessListWithGasUsed, Address, BlockId, BlockNumber, Bytes, H256, H64,
-  U256, U64
+  transaction::eip2930::AccessListWithGasUsed, Address, BlockId, BlockNumber, Bytes, H256, U256, U64
 };
 use jsonrpsee::proc_macros::rpc;
 use jsonrpsee_core::RpcResult;

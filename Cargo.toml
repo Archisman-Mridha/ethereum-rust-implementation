@@ -1,11 +1,17 @@
-[package]
-name = "ethereum-rust-implementation"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = [
+  "crates/rpc",
+  "crates/storage/compression",
+  "crates/storage/compression/derive",
+  "crates/storage/db",
+  "crates/storage/static_files",
+  "crates/sync",
+  "crates/utils"
+]
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
+[workspace.dependencies]
 async-trait = "0.1.78"
 ethers-core = "2.0.14"
 jsonrpsee = { version = "0.22.3", features = ["server", "macros"] }
@@ -14,5 +20,10 @@ rayon = "1.9.0"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 thiserror = "1.0.58"
-tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread", "sync"] }
 tracing = "0.1.40"
+
+compression = { path = "./crates/storage/compression" }
+db = { path = "./crates/storage/db" }
+static_files = { path = "./crates/storage/static_files" }
+utils = { path = "./crates/utils" }

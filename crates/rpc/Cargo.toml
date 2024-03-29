@@ -1,10 +1,12 @@
 [package]
-name = "codec"
+name = "rpc"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-alloy-primitives = "0.6.4"
-bytes = "1.6.0"
+ethers-core = { workspace = true }
+jsonrpsee = { workspace = true }
+jsonrpsee-core = { workspace = true }
+serde = { workspace = true }
