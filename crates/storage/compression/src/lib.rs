@@ -3,7 +3,7 @@
 use alloy_primitives::{Address, Bloom, Bytes, B256, B512, U256};
 use bytes::{Buf, BufMut};
 
-pub trait Compression: Sized {
+pub trait Compressor: Sized {
 
   // Takes a buffer which can be written to. (Ideally) returns the length written to.
   fn compress<B>(self, buffer: &mut B) -> usize
@@ -16,12 +16,23 @@ pub trait Compression: Sized {
   fn decompress(buffer: &[u8],
                 // Can either be the buffer remaining length, or the length of the compacted type.
                 len: usize) -> (Self, &[u8]);
+
+  // Override implementation and use when dealing with fixed-size bytes.
+  fn compressFixedSizeBytes<B>(self, buffer: &mut B) -> usize
+    where
+      B: BufMut
+  { self.compress(buffer) }
+
+  // Override implementation and use when dealing with fixed-size bytes.
+  fn decompressFixedSizeBytes(buffer: &[u8], len: usize) -> (Self, &[u8]) {
+    Self::decompress(buffer, len)
+  }
 }
 
-macro_rules! uint_types_compression_impl {
+macro_rules! uint_types_impl_compressor {
   ($($type_name:tt),+) => {
     $(
-      impl Compression for $type_name {
+      impl Compressor for $type_name {
         #[inline] // Inlining is an optimization technique where the compiler replaces a function
                   // call with the actual body of the function at the call site. 
         fn compress<B>(self, buffer: &mut B) -> usize
@@ -41,33 +52,33 @@ macro_rules! uint_types_compression_impl {
 
           const UINT_TYPE_SIZE: usize= core::mem::size_of::<$type_name>( );
 
-          let mut uintAsByteArray= [0; UINT_TYPE_SIZE];
+          let mut uintAsBytes= [0; UINT_TYPE_SIZE];
           let bytesWithLeadingZeroBits= UINT_TYPE_SIZE - len;
-          uintAsByteArray[bytesWithLeadingZeroBits..].copy_from_slice(&buffer[..len]);
+          uintAsBytes[bytesWithLeadingZeroBits..].copy_from_slice(&buffer[..len]);
 
           buffer.advance(len);
 
-          ($type_name::from_be_bytes(uintAsByteArray), buffer)
+          ($type_name::from_be_bytes(uintAsBytes), buffer)
         }
       }
     )+ // '+' means repeat the contents inside for each match.
   };
 }
-uint_types_compression_impl!(u8, u64, u128);
+uint_types_impl_compressor!(u8, u64, u128);
 
-impl Compression for U256 {
+impl Compressor for U256 {
   #[inline]
   fn compress<B>(self, buffer: &mut B) -> usize
     where
       B: BufMut,
   {
-    let u256AsByteArray = self.to_be_bytes::<32>( );
+    let u256AsBytes = self.to_be_bytes::<32>( );
 
     let leadingZeroBitCount= self.leading_zeros( ) as usize;
     let bytesWithLeadingZeroBits= leadingZeroBitCount / 8;
 
     let sizeOccupiedInBuffer = 32 - bytesWithLeadingZeroBits;
-    buffer.put_slice(&u256AsByteArray[32 - sizeOccupiedInBuffer..]);
+    buffer.put_slice(&u256AsBytes[32 - sizeOccupiedInBuffer..]);
     sizeOccupiedInBuffer
   }
 
@@ -77,16 +88,16 @@ impl Compression for U256 {
       return (U256::ZERO, buffer)
     }
 
-    let mut u256AsByteArray = [0; 32];
-    u256AsByteArray[(32 - len)..].copy_from_slice(&buffer[..len]);
+    let mut u256AsBytes = [0; 32];
+    u256AsBytes[(32 - len)..].copy_from_slice(&buffer[..len]);
     buffer.advance(len);
-    (U256::from_be_bytes(u256AsByteArray), buffer)
+    (U256::from_be_bytes(u256AsBytes), buffer)
   }
 }
 
-impl<T> Compression for Vec<T>
+impl<T> Compressor for Vec<T>
   where
-    T: Compression
+    T: Compressor
 {
   // Returns 0 since we won't include it in the StructFlags.
   #[inline]
@@ -126,11 +137,40 @@ impl<T> Compression for Vec<T>
 
     (vec, buffer)
   }
+
+  #[inline]
+  fn compressFixedSizeBytes<B>(self, buffer: &mut B) -> usize
+    where
+      B: BufMut
+  {
+    compressUsize(self.len( ), buffer);
+
+    for element in self {
+      element.compress(buffer);
+    }
+
+    0
+  }
+
+  #[inline]
+  fn decompressFixedSizeBytes(buffer: &[u8], len: usize) -> (Self, &[u8]) {
+    let (vecLen, mut buffer)= decompressUsize(buffer);
+
+    let mut vec= Vec::with_capacity(vecLen);
+    for _ in 0..vecLen {
+      let element;
+      (element, buffer)= T::decompress(buffer, len);
+
+      vec.push(element);
+    }
+
+    (vec, buffer)
+  }
 }
 
-impl<T> Compression for Option<T>
+impl<T> Compressor for Option<T>
   where
-    T: Compression
+    T: Compressor
 {
   // Returns 0 for None and 1 for Some(_).
   fn compress<B>(self, buffer: &mut B) -> usize
@@ -164,9 +204,34 @@ impl<T> Compression for Option<T>
 
     (Some(element), buffer)
   }
+
+  #[inline]
+  fn compressFixedSizeBytes<B>(self, buffer: &mut B) -> usize
+    where
+      B: BufMut
+  {
+    match self {
+      Some(value) => {
+        value.compress(buffer);
+        1
+      },
+
+      None => 0
+    }
+  }
+
+  #[inline]
+  fn decompressFixedSizeBytes(buffer: &[u8], len: usize) -> (Self, &[u8]) {
+    if len == 0 {
+      return (None, buffer)
+    }
+
+    let (value, buffer) = T::decompress(buffer, len);
+    (Some(value), buffer)
+  }
 }
 
-impl Compression for bool {
+impl Compressor for bool {
   // bool vars go directly to the StructFlags and are not written to the buffer.
   #[inline]
   fn compress<B>(self, _: &mut B) -> usize
@@ -181,7 +246,7 @@ impl Compression for bool {
   }
 }
 
-impl<const N: usize> Compression for [u8; N] {
+impl<const N: usize> Compressor for [u8; N] {
   #[inline]
   fn compress<B>(self, buffer: &mut B) -> usize
     where
@@ -203,7 +268,7 @@ impl<const N: usize> Compression for [u8; N] {
   }
 }
 
-impl Compression for Bytes {
+impl Compressor for Bytes {
   #[inline]
   fn compress<B>(self, buffer: &mut B) -> usize
     where
@@ -220,10 +285,10 @@ impl Compression for Bytes {
   }
 }
 
-macro_rules! fixed_size_byte_array_types_compression_impl {
+macro_rules! fixed_size_bytes_types_impl_compressor {
   ($($type_name:tt),+) => {
     $(
-      impl Compression for $type_name {
+      impl Compressor for $type_name {
         #[inline]
         fn compress<B>(self, buffer: &mut B) -> usize
           where
@@ -239,7 +304,7 @@ macro_rules! fixed_size_byte_array_types_compression_impl {
     )+ // '+' means repeat the contents inside for each match.
   };
 }
-fixed_size_byte_array_types_compression_impl!(Address, B256, B512, Bloom);
+fixed_size_bytes_types_impl_compressor!(Address, B256, B512, Bloom);
 
 fn compressUsize<B>(mut n: usize, buffer: &mut B)
   where
@@ -279,12 +344,12 @@ fn decompressUsize(buffer: &[u8]) -> (usize, &[u8]) {
       return (value, &buffer[i + 1..])
     }
   }
-  usizeDecompressionPanic( );
+  usizeDecompressorPanic( );
 }
 
 #[inline(never)]
 #[cold] // Indicates that the function is rarely called. The function will be optimized for code
         // size rather than speed.
-const fn usizeDecompressionPanic( ) -> ! {
+const fn usizeDecompressorPanic( ) -> ! {
   panic!("could not decode usize");
 }
